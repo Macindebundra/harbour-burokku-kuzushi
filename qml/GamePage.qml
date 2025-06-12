@@ -6,6 +6,9 @@ Page {
     allowedOrientations: Orientation.Landscape
 
     property int score: 0  // スコア変数を追加
+    property int blockRows: 5
+    property int blockColumns: 8
+    property real blockMergin: 2
 
     Rectangle {
         anchors.fill: parent
@@ -29,7 +32,7 @@ Page {
 
         Rectangle {
             id: paddle
-            width: 100; height: 20
+            width: 120; height: 20
             color: "blue"
             y: parent.height - 50
             x: (parent.width - width) / 2
@@ -48,46 +51,62 @@ Page {
             anchors {
                 top: parent.top
                 left: parent.left
-                margins: 30
+                right: parent.right
+                margins: 10
             }
-            width: parent.width - 60
             height: 120
 
             property var blocks: []
-            property int columns: 5
-            property int rows: 3
+            property real blockWidth: (width - (blockColumns-1)*blockMergin) / blockColumns
+            property real blockHeight: 20
 
-            Component.onCompleted: {
-                var blockWidth = width / columns - 5  // ブロック幅を計算
-                var blockHeight = 20
+            Component.onCompleted: generateBlocks()
 
-                for (var i = 0; i < columns; i++) {
-                    for (var j = 0; j < rows; j++) {
+            function generateBlocks() {
+                for (var i = 0; i < blocks.length; i++) {
+                    if (blocks[i]) blocks[i].destroy()
+                }
+                blocks = []
+
+                for (var row = 0; row < blockRows; row++) {
+                    for (var col = 0; col < blockColumns; col++) {
                         // 文字列連結方式に変更（テンプレートリテラルはSailfish QMLで不安定）
-                        var blockCode =
-                            'import QtQuick 2.0; ' +
-                            'Rectangle { ' +
-                            '   width: ' + blockWidth + '; ' +
-                            '   height: ' + blockHeight + '; ' +
-                            '   color: "red"; ' +
-                            '   x: ' + (i * (blockWidth + 5)) + '; ' +
-                            '   y: ' + (j * (blockHeight + 5)) + '; ' +
-                            '   property bool alive: true; ' +
-                            '}';
+                        var block =
+                                blockComponent.createObject(blockArea, {
+                                   x: col * (blockWidth + blockMergin),
+                                   y: row * (blockHeight + blockMergin),
+                                   width: blockWidth,
+                                   height: blockHeight,
+                                   color: Qt.rgba(row/blockRows, 0.5, 1 - row/blockRows,1)
+                               })
 
-                        try {
-                            var block = Qt.createQmlObject(
-                                blockCode,
-                                blockArea,
-                                "block_" + i + "_" + j
-                            );
-                            blocks.push(block);
-                        } catch (e) {
-                            console.error("Block creation error:", e);
-                        }
+                            //'blockComponent.createObject(blockArea, {' +
+                            //'   x: col * (blockWidth + blockMergin),' +
+                            //'   y: row * (blockHeight + blockMergin),' +
+                            //'   width: blockwidth,' +
+                            //'   height: blockHeight,' +
+                            //'   color: Qt.raba(row/blockRows, 0.5, 1 - row/blockRows,1)' +
+                            //'})';
+                        blocks.push(block)
                     }
                 }
             }
+        }
+
+        Component {
+            id: blockComponent
+            Rectangle {
+                property bool alive: true
+                visible: alive
+                radius: 3
+                border.color: "white"
+                border.width: 1
+            }
+        }
+
+        Connections{
+            target: gamePage
+            onWidthChanged: blockArea.generateBlocks()
         }
 
         Timer {
