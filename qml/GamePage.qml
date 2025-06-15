@@ -12,11 +12,48 @@ Page {
     property real blockMargin: 5
     property bool gameOver: false
     property bool levelCleared: false
-
     property alias ballX: ball.x
     property alias ballY: ball.y
-
     property bool initialized: false
+    property int countdown: 3
+    property bool isCounting: false
+
+    function startCountdown() {
+        gameLoop.running = false;
+        isCounting = true;
+        countdown = 3;
+        countdownTimer.start();
+    }
+
+    Timer {
+        id: countdownTimer
+        interval: 1000
+        repeat: true
+        onTriggered: {
+            countdown--;
+            if (countdown <= 0) {
+                stop();
+                isCounting = false;
+                gameLoop.running = true;
+            }
+        }
+    }
+
+    function randomAngle() {
+        var ang = 0;
+        ang = Math.random() * (Math.PI / 9) * 5 + (Math.PI / 9) * 2;
+        if (ang < (Math.PI * 5) / 9 && ang > (Math.PI * 4) / 9) {
+            return randomAngle();
+        }
+        return ang;
+    }
+
+    function setBallVelocity() {
+        var angle = randomAngle();
+        var speed = 8;
+        ball.vx = Math.cos(angle) * speed;
+        ball.vy = Math.sin(angle) * speed;
+    }
 
     onStatusChanged: {
         if (status === PageStatus.Active && !initialized) {
@@ -29,12 +66,15 @@ Page {
         initialized = true
 
         paddle.x = (parent.width - paddle.width) / 2
-        paddle.y = parent.height - 50
+        paddle.y = parent.height - 150
 
         ball.x = parent.width / 2 - ball.width / 2
         ball.y = parent.height / 3
 
         resetGame()
+
+        setBallVelocity();
+        startCountdown();
     }
 
     // メインゲーム画面
@@ -57,6 +97,16 @@ Page {
         Rectangle {
             anchors.fill: parent
             color: "black"
+        }
+
+        Label {
+            text: countdown > 0 ? countdown : "GO!"
+            color: "white"
+            font.pixelSize: Theme.fontSizeHuge
+            anchors.centerIn: parent
+            visible: isCounting
+            opacity: visible ? 1.0 : 0.0
+            Behavior on opacity { NumberAnimation { duration: 500} }
         }
 
         // ゲーム要素コンテナ
@@ -173,7 +223,7 @@ Page {
             Timer {
                 id: gameLoop
                 interval: 16  // ~60fps
-                running: true
+                running: false
                 repeat: true
 
                 onTriggered: {
@@ -294,6 +344,9 @@ Page {
         blockArea.generateBlocks();
 
         startTimer.start()
+
+        setBallVelocity();
+        startCountdown();
     }
 
     Timer {
