@@ -17,27 +17,7 @@ Page {
     property bool initialized: false
     property int countdown: 3
     property bool isCounting: false
-
-    function startCountdown() {
-        gameLoop.running = false;
-        isCounting = true;
-        countdown = 3;
-        countdownTimer.start();
-    }
-
-    Timer {
-        id: countdownTimer
-        interval: 1000
-        repeat: true
-        onTriggered: {
-            countdown--;
-            if (countdown <= 0) {
-                stop();
-                isCounting = false;
-                gameLoop.running = true;
-            }
-        }
-    }
+    property bool gameStarted: false
 
     function randomAngle() {
         var ang = 0;
@@ -227,7 +207,7 @@ Page {
                 repeat: true
 
                 onTriggered: {
-                    if (gameOver) return;
+                    if (gameOver || !gameStarted) return;
 
                     // ボール移動
                     ball.x += ball.vx;
@@ -327,11 +307,34 @@ Page {
         z: 6
     }
 
+    function startCountdown() {
+        gameLoop.running = false;
+        isCounting = true;
+        countdown = 3;
+        countdownTimer.start();
+    }
+
+    Timer {
+        id: countdownTimer
+        interval: 1000
+        repeat: true
+        onTriggered: {
+            countdown--;
+            if (countdown <= 0) {
+                stop();
+                isCounting = false;
+                gameStarted = true;
+                gameLoop.running = true;
+            }
+        }
+    }
+
     // ゲームリセット関数
     function resetGame() {
         // 状態リセット
         gameOverText.visible = false;
         gameOver = false;
+        gameStarted = false;
         levelCleared = false;
         score = 0;
 
@@ -360,6 +363,7 @@ Page {
     // ゲーム終了処理
     function endGame(cleared) {
         gameOver = true;
+        gameStarted = false;
         levelCleared = cleared;
         gameOverText.text = cleared ? "Level Clear!" : "Game Over";
         gameOverText.visible = true;
