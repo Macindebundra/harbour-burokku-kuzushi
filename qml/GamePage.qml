@@ -18,44 +18,8 @@ Page {
     property int countdown: 3
     property bool isCounting: false
     property bool gameStarted: false
-
-    function randomAngle() {
-        var ang = 0;
-        ang = Math.random() * (Math.PI / 9) * 5 + (Math.PI / 9) * 2;
-        if (ang < (Math.PI * 5) / 9 && ang > (Math.PI * 4) / 9) {
-            return randomAngle();
-        }
-        return ang;
-    }
-
-    function setBallVelocity() {
-        var angle = randomAngle();
-        var speed = 8;
-        ball.vx = Math.cos(angle) * speed;
-        ball.vy = Math.sin(angle) * speed;
-    }
-
-    onStatusChanged: {
-        if (status === PageStatus.Active && !initialized) {
-            initializeGame()
-        }
-    }
-
-    function initializeGame() {
-        if (initialized) return
-        initialized = true
-
-        paddle.x = (parent.width - paddle.width) / 2
-        paddle.y = parent.height - 150
-
-        ball.x = parent.width / 2 - ball.width / 2
-        ball.y = parent.height / 3
-
-        resetGame()
-
-        setBallVelocity();
-        startCountdown();
-    }
+    property bool initialScreen: true
+    property bool showInstructions: true
 
     // メインゲーム画面
     SilicaFlickable {
@@ -68,8 +32,16 @@ Page {
             z: 100  // 最高Z値で常に前面に
 
             MenuItem {
-                text: "Restart Game"
-                onClicked: resetGame()
+                text: initialScreen ? "Start Game" : "Restart Game"
+                onClicked: {
+                    if (initialScreen) {
+                        initialScreen = false;
+                        showInstructions = false;
+                        startGame()
+                    } else {
+                        resetGame()
+                    }
+                }
             }
         }
 
@@ -80,6 +52,7 @@ Page {
         }
 
         Label {
+            id: countdownText
             text: countdown > 0 ? countdown : "GO!"
             color: "white"
             font.pixelSize: Theme.fontSizeHuge
@@ -100,7 +73,7 @@ Page {
                 width: 20; height: 20
                 radius: width / 2
                 color: "white"
-                visible: false
+                visible: !initialScreen && !gameOver
                 z: 2
 
                 property real vx: 0  // X軸速度
@@ -131,7 +104,7 @@ Page {
 
                 MouseArea {
                     anchors.fill: parent
-                    drag.target: paddle
+                    drag.target: initialScreen ? null : paddle
                     drag.axis: Drag.XAxis
                     drag.minimumX: 0
                     drag.maximumX: gamePage.width - paddle.width
@@ -173,7 +146,9 @@ Page {
                                 y: row * (blockHeight + blockMargin),
                                 width: blockWidth,
                                 height: blockHeight,
-                                color: Qt.rgba(row/blockRows, 0.5, 1-row/blockRows, 1)
+                                color: Qt.rgba(row/blockRows, 0.5, 1-row/blockRows, 1),
+                                alive: true,
+                                visible: initialScreen || !gameOver
                             });
                             blocks.push(block);
                         }
@@ -186,10 +161,12 @@ Page {
                 id: blockComponent
                 Rectangle {
                     property bool alive: true
-                    visible: alive
+                    visible: alive && (initialScreen || !gameOver)
                     radius: 3
                     border.color: "white"
                     border.width: 1
+
+                    Component.onCompleted: alive = true
                 }
             }
 
@@ -214,11 +191,22 @@ Page {
                     ball.y += ball.vy;
 
                     // パドル衝突判定
+                    var paddleHit = false;
                     if (ball.y + ball.height >= paddle.y &&
                         ball.y <= paddle.y + paddle.height &&
                         ball.x + ball.width >= paddle.x &&
                         ball.x <= paddle.x + paddle.width) {
+
+                        var hitPos = (ball.x + ball.width/2 - paddle.x) / paddle.width;
+                        ball.vx = (hitPos - 0.5) * 10;
                         ball.vy = -Math.abs(ball.vy);  // 上向きに反射
+
+                        var speed = Math.sqrt(ball.vx*ball.vx + ball.vy*ball.vy);
+                        var targetSpeed = 8;
+                        ball.vx = (ball.vx / speed) * targetSpeed;
+                        ball.vy = (ball.vy / speed) * targetSpeed;
+
+                        paddleHit = true;
                     }
 
                     // ブロック衝突判定
@@ -295,6 +283,52 @@ Page {
         }
     }
 
+    function randomAngle() {
+        var ang = 0;
+        ang = Math.random() * (Math.PI / 9) * 5 + (Math.PI / 9) * 2;
+        if (ang < (Math.PI * 5) / 9 && ang > (Math.PI * 4) / 9) {
+            return randomAngle();
+        }
+        return ang;
+    }
+
+    function setBallVelocity() {
+        var angle = randomAngle();
+        var speed = 8;
+        ball.vx = Math.cos(angle) * speed;
+        ball.vy = Math.sin(angle) * speed;
+    }
+
+    onStatusChanged: {
+        if (status === PageStatus.Active && !initialized) {
+            initializeGame()
+        }
+    }
+
+    function initializeGame() {
+        if (initialized) return
+        initialized = true
+
+        paddle.x = (parent.width - paddle.width) / 2
+        paddle.y = parent.height - 150
+
+        ball.x = parent.width / 2 - ball.width / 2
+        ball.y = parent.height / 3
+
+        resetGame()
+    }
+
+    Label {
+        id: instructionText
+        text: "Swipe down to start Game"
+        color: "white"
+        font.pixelSize: Theme.fontSizeHuge
+        font.bold: true
+        anchors.centerIn: parent
+        visible: initialScreen && showInstructions
+        z: 10
+    }
+
     // ゲームオーバーメッセージ (z-index: 6)
     Label {
         id: gameOverText
@@ -329,18 +363,34 @@ Page {
         }
     }
 
+    function startGame() {
+        ball.resetPosition()
+        ball.visible = true;
+
+        for(var i = 0; i < blockArea.blocks.length; i++) {
+            blockArea.blocks[i].alive = true
+            blockArea.blocks[i].visible = true
+        }
+
+        countdownText.visible = true
+        countdownText.text = "3"
+        countdownTimer.start()
+    }
+
     // ゲームリセット関数
     function resetGame() {
         // 状態リセット
         gameOverText.visible = false;
         gameOver = false;
-        gameStarted = false;
         levelCleared = false;
+        isCounting = false;
+        countdownText.visible = false;
         score = 0;
 
         gameLoop.running = false;
 
         ball.resetPosition()
+        ball.visible = !initialScreen;
         paddle.resetPosition()
 
         // ブロック再生成
@@ -348,8 +398,10 @@ Page {
 
         startTimer.start()
 
-        setBallVelocity();
-        startCountdown();
+        if (!initialScreen) {
+            setBallVelocity();
+            startCountdown();
+        }
     }
 
     Timer {
