@@ -292,12 +292,12 @@ Page {
         return ang;
     }
 
-    function setBallVelocity() {
-        var angle = randomAngle();
-        var speed = 8;
-        ball.vx = Math.cos(angle) * speed;
-        ball.vy = Math.sin(angle) * speed;
-    }
+    //function setBallVelocity() {
+    //    var angle = randomAngle();
+    //    var speed = 8;
+    //    ball.vx = Math.cos(angle) * speed;
+    //    ball.vy = Math.sin(angle) * speed;
+    //}
 
     onStatusChanged: {
         if (status === PageStatus.Active && !initialized) {
@@ -358,6 +358,7 @@ Page {
                 stop();
                 isCounting = false;
                 gameStarted = true;
+                countdownText.visible = false;
                 gameLoop.running = true;
             }
         }
@@ -372,9 +373,8 @@ Page {
             blockArea.blocks[i].visible = true
         }
 
-        countdownText.visible = true
-        countdownText.text = "3"
-        countdownTimer.start()
+        countdownText.visible = true;
+        startCountdown();
     }
 
     // ゲームリセット関数
@@ -389,7 +389,7 @@ Page {
 
         gameLoop.running = false;
 
-        ball.resetPosition()
+        ball.resetPosition();
         ball.visible = !initialScreen;
         paddle.resetPosition()
 
@@ -399,7 +399,7 @@ Page {
         startTimer.start()
 
         if (!initialScreen) {
-            setBallVelocity();
+            countdownText.visible = true;
             startCountdown();
         }
     }
