@@ -15,7 +15,7 @@ Page {
     property alias ballX: ball.x
     property alias ballY: ball.y
     property bool initialized: false
-    property int countdown: 3
+    property int countdown: 4
     property bool isCounting: false
     property bool gameStarted: false
     property bool initialScreen: true
@@ -53,7 +53,12 @@ Page {
 
         Label {
             id: countdownText
-            text: countdown > 0 ? countdown : "GO!"
+            text: {
+                if (countdown > 1) return (countdown - 1).toString()
+                else if (countdown === 1) return "GO!"
+                else return ""
+            }
+
             color: "white"
             font.pixelSize: Theme.fontSizeHuge
             anchors.centerIn: parent
@@ -292,12 +297,12 @@ Page {
         return ang;
     }
 
-    //function setBallVelocity() {
-    //    var angle = randomAngle();
-    //    var speed = 8;
-    //    ball.vx = Math.cos(angle) * speed;
-    //    ball.vy = Math.sin(angle) * speed;
-    //}
+    function setBallVelocity() {
+        var angle = randomAngle();
+        var speed = 8;
+        ball.vx = Math.cos(angle) * speed;
+        ball.vy = Math.sin(angle) * speed;
+    }
 
     onStatusChanged: {
         if (status === PageStatus.Active && !initialized) {
@@ -344,7 +349,7 @@ Page {
     function startCountdown() {
         gameLoop.running = false;
         isCounting = true;
-        countdown = 3;
+        countdown = 4;
         countdownTimer.start();
     }
 
@@ -356,9 +361,10 @@ Page {
             countdown--;
             if (countdown <= 0) {
                 stop();
+                countdownText.visible = false;
+            } else if (countdown === 1) {
                 isCounting = false;
                 gameStarted = true;
-                countdownText.visible = false;
                 gameLoop.running = true;
             }
         }
@@ -367,6 +373,8 @@ Page {
     function startGame() {
         ball.resetPosition()
         ball.visible = true;
+
+        setBallVelocity()
 
         for(var i = 0; i < blockArea.blocks.length; i++) {
             blockArea.blocks[i].alive = true
@@ -392,6 +400,8 @@ Page {
         ball.resetPosition();
         ball.visible = !initialScreen;
         paddle.resetPosition()
+
+        setBallVelocity();
 
         // ブロック再生成
         blockArea.generateBlocks();

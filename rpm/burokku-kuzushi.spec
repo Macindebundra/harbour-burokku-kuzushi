@@ -1,8 +1,8 @@
 Name:       burokku-kuzushi
 
 Summary:    harbour-burokku-kuzushi
-Version:    0.2
-Release:    2
+Version:    0.3
+Release:    3
 License:    LICENSE
 URL:        http://example.org/
 Source0:    %{name}-%{version}.tar.bz2
