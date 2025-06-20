@@ -3,8 +3,8 @@ Name:       burokku-kuzushi
 Summary:    harbour-burokku-kuzushi
 Version:    0.3
 Release:    3
-License:    LICENSE
-URL:        http://example.org/
+License:    GPL-3.0 license
+URL:        https://github.com/Macindebundra/harbour-burokku-kuzushi
 Source0:    %{name}-%{version}.tar.bz2
 Requires:   sailfishsilica-qt5 >= 0.10.9
 BuildRequires:  pkgconfig(sailfishapp) >= 1.0.2
